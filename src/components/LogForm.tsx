@@ -32,24 +32,24 @@ export function LogForm({
     const [restocked, setRestocked] = useState<Record<ProductKey, boolean>>(emptyRestocked());
     const [notes, setNotes] = useState("");
 
-    const payload = useMemo(() => {
-        const base = { date, weekday, cleaned, cleanedBy, restocked };
+    const payload = useMemo<CreateCoffeeLogInput>(() => {
+        const base: CreateCoffeeLogInput = { date, weekday, cleaned, cleanedBy, restocked };
 
         const trimmed = notes.trim();
         return trimmed ? { ...base, notes: trimmed } : base;
     }, [date, weekday, cleaned, cleanedBy, restocked, notes]);
 
 
+
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
 
         const parsed = createLogSchema.safeParse(payload);
-        if (!parsed.success) {
-            alert(parsed.error.issues[0]?.message ?? "Dados inválidos");
-            return;
-        }
+        if (!parsed.success) return;
 
-        await onSubmit(parsed.data);
+        await onSubmit(parsed.data as CreateCoffeeLogInput);
+
+
         setCleanedBy("");
         setRestocked(emptyRestocked());
         setNotes("");
