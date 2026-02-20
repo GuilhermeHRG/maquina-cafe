@@ -1,6 +1,32 @@
+import { useMemo, useState } from "react";
 import type { ProductKey } from "../domain/products";
 import { PRODUCTS } from "../domain/products";
 import { parseDecimalInput } from "../domain/number";
+
+// Formata o valor para exibir como "2 + 3/4" quando for múltiplo de 0.25
+function formatQuarterFriendly(value: number): string {
+    const v = Number(value ?? 0);
+    if (!Number.isFinite(v)) return "0";
+
+    // evita 2.7499999
+    const rounded = Math.round(v * 100) / 100;
+
+    // converte para "quartos" e valida encaixe exato
+    const q = Math.round(rounded * 4);
+    const back = q / 4;
+
+    // se não encaixar perfeitamente em 1/4, mostra decimal normal
+    if (Math.abs(rounded - back) > 1e-9) {
+        return String(rounded);
+    }
+
+    const whole = Math.floor(q / 4);
+    const num = q % 4;
+
+    if (num === 0) return String(whole);
+    if (whole === 0) return `${num}/4`;
+    return `${whole} + ${num}/4`;
+}
 
 export function InventoryCard({
     items,
@@ -13,6 +39,18 @@ export function InventoryCard({
     onSave: () => void;
     loading: boolean;
 }) {
+    // ✅ display "padrão" vindo de items (sem setState / sem effect)
+    const displayByKey = useMemo(() => {
+        const out = {} as Record<ProductKey, string>;
+        PRODUCTS.forEach((p) => {
+            out[p.key] = formatQuarterFriendly(items[p.key] ?? 0);
+        });
+        return out;
+    }, [items]);
+
+    // ✅ guarda só o que o usuário está digitando (override)
+    const [draftOverrides, setDraftOverrides] = useState<Partial<Record<ProductKey, string>>>({});
+
     return (
         <div className="card">
             <div className="row space">
@@ -30,24 +68,40 @@ export function InventoryCard({
             <hr />
 
             <div className="grid" style={{ gap: 10 }}>
-                {PRODUCTS.map((p) => (
-                    <div key={p.key} className="row space">
-                        <div>
-                            <div style={{ fontWeight: 700 }}>{p.label}</div>
-                            <div style={{ color: "var(--muted)", fontSize: 12 }}>{p.key}</div>
-                        </div>
+                {PRODUCTS.map((p) => {
+                    const value = draftOverrides[p.key] ?? displayByKey[p.key] ?? "0";
 
-                        <div style={{ width: 120 }}>
-                            <input
-                                type="number"
-                                step="0.01"   
-                                min="0"
-                                value={String(items[p.key] ?? 0)}
-                                onChange={(e) => onChange(p.key, parseDecimalInput(e.target.value))}
-                            />
+                    return (
+                        <div key={p.key} className="row space">
+                            <div>
+                                <div style={{ fontWeight: 700 }}>{p.label}</div>
+                                <div style={{ color: "var(--muted)", fontSize: 12 }}>{p.key}</div>
+                            </div>
+
+                            <div style={{ width: 120 }}>
+                                <input
+                                    type="text"
+                                    inputMode="text" // <- troque aqui (ou remova essa linha)
+                                    placeholder="ex: 2 + 3/4"
+                                    value={value}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setDraftOverrides((d) => ({ ...d, [p.key]: val }));
+                                    }}
+                                    onBlur={() => {
+                                        const raw = (draftOverrides[p.key] ?? displayByKey[p.key] ?? "0").trim();
+                                        const parsed = parseDecimalInput(raw);
+                                        const safe = Math.max(0, parsed);
+                                        onChange(p.key, safe);
+
+                                        const formatted = formatQuarterFriendly(safe);
+                                        setDraftOverrides((d) => ({ ...d, [p.key]: formatted }));
+                                    }}
+                                />
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
