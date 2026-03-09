@@ -1,32 +1,8 @@
 import { useMemo, useState } from "react";
 import type { ProductKey } from "../domain/products";
 import { PRODUCTS } from "../domain/products";
-import { parseDecimalInput } from "../domain/number";
 
 // Formata o valor para exibir como "2 + 3/4" quando for múltiplo de 0.25
-function formatQuarterFriendly(value: number): string {
-    const v = Number(value ?? 0);
-    if (!Number.isFinite(v)) return "0";
-
-    // evita 2.7499999
-    const rounded = Math.round(v * 100) / 100;
-
-    // converte para "quartos" e valida encaixe exato
-    const q = Math.round(rounded * 4);
-    const back = q / 4;
-
-    // se não encaixar perfeitamente em 1/4, mostra decimal normal
-    if (Math.abs(rounded - back) > 1e-9) {
-        return String(rounded);
-    }
-
-    const whole = Math.floor(q / 4);
-    const num = q % 4;
-
-    if (num === 0) return String(whole);
-    if (whole === 0) return `${num}/4`;
-    return `${whole} + ${num}/4`;
-}
 
 export function InventoryCard({
     items,
