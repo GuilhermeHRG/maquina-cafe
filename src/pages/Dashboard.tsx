@@ -8,23 +8,33 @@ import { createLog, listLogs } from "../firebase/logs.repo";
 import { PRODUCTS, type ProductKey } from "../domain/products";
 import type { CoffeeLog, CreateCoffeeLogInput } from "../domain/types";
 
-function emptyInventory(): Record<ProductKey, number> {
-  return Object.fromEntries(PRODUCTS.map((p) => [p.key, 0])) as Record<ProductKey, number>;
+function emptyInventory(): Record<ProductKey, string> {
+  return Object.fromEntries(
+    PRODUCTS.map((p) => [p.key, ""])
+  ) as Record<ProductKey, string>;
 }
 
 export default function Dashboard() {
-  const [inv, setInv] = useState<Record<ProductKey, number>>(emptyInventory());
+  const [inv, setInv] = useState<Record<ProductKey, string>>(emptyInventory());
   const [logs, setLogs] = useState<CoffeeLog[]>([]);
   const [loadingInv, setLoadingInv] = useState(false);
   const [loadingLog, setLoadingLog] = useState(false);
 
   const lowStock = useMemo(() => {
-    // regra simples: <= 2 é baixo (você ajusta depois)
-    return PRODUCTS.filter((p) => inv[p.key] <= 2).map((p) => p.label);
+    // tenta extrair número do texto para detectar estoque baixo
+    return PRODUCTS.filter((p) => {
+      const val = inv[p.key];
+      const n = parseFloat(val);
+      return !isNaN(n) && n <= 2;
+    }).map((p) => p.label);
   }, [inv]);
 
   async function refresh() {
-    const [inventory, lastLogs] = await Promise.all([getInventory(), listLogs(30)]);
+    const [inventory, lastLogs] = await Promise.all([
+      getInventory(),
+      listLogs(30),
+    ]);
+
     setInv(inventory.items);
     setLogs(lastLogs);
   }
@@ -53,6 +63,8 @@ export default function Dashboard() {
     }
   }
 
+  
+
   return (
     <Layout>
       {lowStock.length ? (
@@ -69,7 +81,10 @@ export default function Dashboard() {
           items={inv}
           loading={loadingInv}
           onChange={(key, next) =>
-            setInv((prev) => ({ ...prev, [key]: Number.isFinite(next) ? next : 0 }))
+            setInv((prev) => ({
+              ...prev,
+              [key]: next,
+            }))
           }
           onSave={handleSaveInventory}
         />

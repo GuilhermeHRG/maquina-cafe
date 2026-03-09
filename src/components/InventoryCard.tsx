@@ -34,19 +34,20 @@ export function InventoryCard({
     onSave,
     loading,
 }: {
-    items: Record<ProductKey, number>;
-    onChange: (key: ProductKey, next: number) => void;
+    items: Record<ProductKey, string>;
+    onChange: (key: ProductKey, next: string) => void;
     onSave: () => void;
     loading: boolean;
 }) {
-    // ✅ display "padrão" vindo de items (sem setState / sem effect)
     const displayByKey = useMemo(() => {
         const out = {} as Record<ProductKey, string>;
         PRODUCTS.forEach((p) => {
-            out[p.key] = formatQuarterFriendly(items[p.key] ?? 0);
+            out[p.key] = items[p.key] ?? "";
         });
         return out;
     }, [items]);
+
+
 
     // ✅ guarda só o que o usuário está digitando (override)
     const [draftOverrides, setDraftOverrides] = useState<Partial<Record<ProductKey, string>>>({});
@@ -86,16 +87,22 @@ export function InventoryCard({
                                     value={value}
                                     onChange={(e) => {
                                         const val = e.target.value;
-                                        setDraftOverrides((d) => ({ ...d, [p.key]: val }));
+
+                                        setDraftOverrides((d) => ({
+                                            ...d,
+                                            [p.key]: val,
+                                        }));
+
+                                        // atualiza o estado do Dashboard imediatamente
+                                        onChange(p.key, val);
                                     }}
                                     onBlur={() => {
-                                        const raw = (draftOverrides[p.key] ?? displayByKey[p.key] ?? "0").trim();
-                                        const parsed = parseDecimalInput(raw);
-                                        const safe = Math.max(0, parsed);
-                                        onChange(p.key, safe);
+                                        const raw = (draftOverrides[p.key] ?? "").trim();
 
-                                        const formatted = formatQuarterFriendly(safe);
-                                        setDraftOverrides((d) => ({ ...d, [p.key]: formatted }));
+                                        setDraftOverrides((d) => ({
+                                            ...d,
+                                            [p.key]: raw,
+                                        }));
                                     }}
                                 />
                             </div>

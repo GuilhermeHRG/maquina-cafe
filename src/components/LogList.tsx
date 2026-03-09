@@ -8,6 +8,19 @@ function weekdayLabel(key: string) {
   return key;
 }
 
+function formatDateBR(date: string) {
+  if (!date) return "";
+
+  // já está no formato BR
+  if (date.includes("/")) return date;
+
+  // formato ISO: YYYY-MM-DD
+  const [year, month, day] = date.split("-");
+  if (!year || !month || !day) return date;
+
+  return `${day}/${month}/${year}`;
+}
+
 export function LogList({ logs }: { logs: CoffeeLog[] }) {
   return (
     <div className="card">
@@ -28,11 +41,10 @@ export function LogList({ logs }: { logs: CoffeeLog[] }) {
             <div key={l.id} className="card" style={{ padding: 12 }}>
               <div className="row space">
                 <div style={{ fontWeight: 800 }}>
-                  {l.date} • {weekdayLabel(l.weekday)}
+                  {formatDateBR(l.date)} • {weekdayLabel(l.weekday)}
                 </div>
                 <span className="badge">{l.cleaned ? "LIMPA" : "NÃO LIMPA"}</span>
               </div>
-
               <div style={{ marginTop: 8, color: "var(--muted)" }}>
                 <div><b style={{ color: "var(--text)" }}>Responsável:</b> {l.cleanedBy || "-"}</div>
                 <div>

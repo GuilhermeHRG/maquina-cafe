@@ -1,7 +1,7 @@
 import type { AllowedWeekday, ProductKey } from "./products";
 
 export type Inventory = {
-  items: Record<ProductKey, number>;
+  items: Record<ProductKey, string>;
   updatedAt?: Date;
 };
 
@@ -18,7 +18,7 @@ export type CreateCoffeeLogInput = {
 
 export type CoffeeLog = {
   id: string;
-  date: string; // YYYY-MM-DD
+  date: string; // DD/MM/YYYY
   weekday: AllowedWeekday;
   cleaned: boolean;
   cleanedBy: string;
