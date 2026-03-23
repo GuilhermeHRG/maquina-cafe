@@ -19,12 +19,18 @@ export async function createLog(input: CreateCoffeeLogInput) {
   });
 }
 
-export async function listLogs(lastN = 30): Promise<CoffeeLog[]> {
-  const q = query(collection(db, LOGS), orderBy("date", "desc"), limit(lastN));
+export async function listLogs(lastN = 100): Promise<CoffeeLog[]> {
+  const q = query(
+    collection(db, LOGS),
+    orderBy("createdAt", "desc"),
+    limit(lastN)
+  );
+
   const snap = await getDocs(q);
 
   return snap.docs.map((d) => {
     const data = d.data() as any;
+
     return {
       id: d.id,
       date: data.date,
@@ -33,6 +39,7 @@ export async function listLogs(lastN = 30): Promise<CoffeeLog[]> {
       cleanedBy: data.cleanedBy ?? "",
       restocked: data.restocked ?? {},
       notes: data.notes,
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : null,
     };
   });
 }

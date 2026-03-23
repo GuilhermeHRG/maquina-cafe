@@ -14,14 +14,27 @@ function emptyInventory(): Record<ProductKey, string> {
   ) as Record<ProductKey, string>;
 }
 
+function toStartOfDay(dateStr: string) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function toEndOfDay(dateStr: string) {
+  const d = new Date(`${dateStr}T23:59:59.999`);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 export default function Dashboard() {
   const [inv, setInv] = useState<Record<ProductKey, string>>(emptyInventory());
   const [logs, setLogs] = useState<CoffeeLog[]>([]);
   const [loadingInv, setLoadingInv] = useState(false);
   const [loadingLog, setLoadingLog] = useState(false);
 
+  const [responsibleFilter, setResponsibleFilter] = useState("");
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
+
   const lowStock = useMemo(() => {
-    // tenta extrair número do texto para detectar estoque baixo
     return PRODUCTS.filter((p) => {
       const val = inv[p.key];
       const n = parseFloat(val);
@@ -32,7 +45,7 @@ export default function Dashboard() {
   async function refresh() {
     const [inventory, lastLogs] = await Promise.all([
       getInventory(),
-      listLogs(30),
+      listLogs(100),
     ]);
 
     setInv(inventory.items);
@@ -63,7 +76,27 @@ export default function Dashboard() {
     }
   }
 
-  
+  const filteredLogs = useMemo(() => {
+    const responsible = responsibleFilter.trim().toLowerCase();
+    const start = startDateFilter ? toStartOfDay(startDateFilter) : null;
+    const end = endDateFilter ? toEndOfDay(endDateFilter) : null;
+
+    return logs.filter((log) => {
+      const matchesResponsible =
+        !responsible ||
+        (log.cleanedBy ?? "").toLowerCase().includes(responsible);
+
+      const createdAt = log.createdAt ?? null;
+
+      const matchesStart =
+        !start || (createdAt ? createdAt.getTime() >= start.getTime() : false);
+
+      const matchesEnd =
+        !end || (createdAt ? createdAt.getTime() <= end.getTime() : false);
+
+      return matchesResponsible && matchesStart && matchesEnd;
+    });
+  }, [logs, responsibleFilter, startDateFilter, endDateFilter]);
 
   return (
     <Layout>
@@ -92,8 +125,59 @@ export default function Dashboard() {
         <LogForm onSubmit={handleSubmitLog} loading={loadingLog} />
       </div>
 
+      <div className="card" style={{ marginTop: 12 }}>
+        <div style={{ fontWeight: 800 }}>Filtros do histórico</div>
+        <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>
+          Filtre por responsável e intervalo de criação do registro
+        </div>
+
+        <hr />
+
+        <div className="grid cols-2" style={{ gap: 10 }}>
+          <div>
+            <label>Responsável</label>
+            <input
+              value={responsibleFilter}
+              onChange={(e) => setResponsibleFilter(e.target.value)}
+              placeholder="Ex: Guilherme"
+            />
+          </div>
+
+          <div>
+            <label>Data inicial</label>
+            <input
+              type="date"
+              value={startDateFilter}
+              onChange={(e) => setStartDateFilter(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label>Data final</label>
+            <input
+              type="date"
+              value={endDateFilter}
+              onChange={(e) => setEndDateFilter(e.target.value)}
+            />
+          </div>
+
+          <div className="row" style={{ alignItems: "end" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setResponsibleFilter("");
+                setStartDateFilter("");
+                setEndDateFilter("");
+              }}
+            >
+              Limpar filtros
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div style={{ marginTop: 12 }}>
-        <LogList logs={logs} />
+        <LogList logs={filteredLogs} />
       </div>
     </Layout>
   );

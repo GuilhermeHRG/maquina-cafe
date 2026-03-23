@@ -5,7 +5,6 @@ export type Inventory = {
   updatedAt?: Date;
 };
 
-
 export type CreateCoffeeLogInput = {
   date: string;
   weekday: AllowedWeekday;
@@ -15,7 +14,6 @@ export type CreateCoffeeLogInput = {
   notes?: string;
 };
 
-
 export type CoffeeLog = {
   id: string;
   date: string; // DD/MM/YYYY
@@ -24,6 +22,5 @@ export type CoffeeLog = {
   cleanedBy: string;
   restocked: Record<ProductKey, boolean>;
   notes?: string;
-  createdAt?: Date;
+  createdAt?: Date | null;
 };
-
