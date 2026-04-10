@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { PRODUCTS, type AllowedWeekday, type ProductKey } from "../domain/products";
 import { createLogSchema } from "../domain/validators";
 import type { CreateCoffeeLogInput } from "../domain/types";
-import { SegmentedWeekday } from "./SegmentedWeekday";
 
 function todayBR() {
     const d = new Date();
@@ -13,7 +12,32 @@ function todayBR() {
     return `${dd}/${mm}/${yyyy}`;
 }
 
+function parseBRDate(date: string) {
+    const [dd, mm, yyyy] = date.split("/").map(Number);
 
+    if (!dd || !mm || !yyyy) return null;
+
+    const parsed = new Date(yyyy, mm - 1, dd);
+
+    if (
+        parsed.getFullYear() !== yyyy ||
+        parsed.getMonth() !== mm - 1 ||
+        parsed.getDate() !== dd
+    ) {
+        return null;
+    }
+
+    return parsed;
+}
+
+function getWeekdayFromBRDate(date: string): AllowedWeekday {
+    const parsed = parseBRDate(date);
+
+    if (!parsed) return "MON";
+
+    const map: AllowedWeekday[] = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    return map[parsed.getDay()];
+}
 
 function emptyRestocked(): Record<ProductKey, boolean> {
     return Object.fromEntries(PRODUCTS.map((p) => [p.key, false])) as Record<ProductKey, boolean>;
@@ -27,18 +51,19 @@ export function LogForm({
     loading: boolean;
 }) {
     const [date, setDate] = useState(todayBR());
-    const [weekday, setWeekday] = useState<AllowedWeekday>("MON");
     const [cleaned, setCleaned] = useState(true);
     const [cleanedBy, setCleanedBy] = useState("");
     const [restocked, setRestocked] = useState<Record<ProductKey, boolean>>(emptyRestocked());
     const [notes, setNotes] = useState("");
 
     const payload = useMemo<CreateCoffeeLogInput>(() => {
+        const weekday = getWeekdayFromBRDate(date);
+
         const base: CreateCoffeeLogInput = { date, weekday, cleaned, cleanedBy, restocked };
 
         const trimmed = notes.trim();
         return trimmed ? { ...base, notes: trimmed } : base;
-    }, [date, weekday, cleaned, cleanedBy, restocked, notes]);
+    }, [date, cleaned, cleanedBy, restocked, notes]);
 
 
 
@@ -54,6 +79,20 @@ export function LogForm({
         setCleanedBy("");
         setRestocked(emptyRestocked());
         setNotes("");
+    }
+
+    function getWeekdayLabel(day: AllowedWeekday) {
+        const labels: Record<AllowedWeekday, string> = {
+            SUN: "Domingo",
+            MON: "Segunda",
+            TUE: "Terça",
+            WED: "Quarta",
+            THU: "Quinta",
+            FRI: "Sexta",
+            SAT: "Sábado",
+        };
+
+        return labels[day];
     }
 
     return (
@@ -74,9 +113,7 @@ export function LogForm({
 
                     <div>
                         <label>Dia da semana</label>
-                        <div style={{ marginTop: 8 }}>
-                            <SegmentedWeekday value={weekday} onChange={setWeekday} />
-                        </div>
+                        <input value={getWeekdayLabel(getWeekdayFromBRDate(date))} readOnly />
                     </div>
                 </div>
 

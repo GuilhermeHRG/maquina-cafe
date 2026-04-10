@@ -2,9 +2,13 @@ import { PRODUCTS } from "../domain/products";
 import type { CoffeeLog } from "../domain/types";
 
 function weekdayLabel(key: string) {
+  if (key === "SUN") return "Domingo";
   if (key === "MON") return "Segunda";
+  if (key === "TUE") return "Terça";
   if (key === "WED") return "Quarta";
+  if (key === "THU") return "Quinta";
   if (key === "FRI") return "Sexta";
+  if (key === "SAT") return "Sábado";
   return key;
 }
 
